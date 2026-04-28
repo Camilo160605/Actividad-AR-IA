@@ -13,8 +13,8 @@
                  usando marcadores (como el marcador Hiro)
       ========================================================
     -->
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"><\/script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"><\/script>
 
     <style>
       /* Elimina márgenes y evita barras de desplazamiento */
@@ -28,7 +28,7 @@
         overflow: hidden; /* La cámara AR ocupa toda la pantalla */
       }
 
-      /* Etiqueta de ayuda en la esquina inferior */
+      /* Etiqueta de ayuda en la parte inferior */
       #ayuda {
         position: fixed;
         bottom: 16px;
@@ -40,13 +40,85 @@
         font-size: 13px;
         padding: 8px 16px;
         border-radius: 20px;
-        pointer-events: none;         /* No bloquea el toque en móvil */
+        pointer-events: none;
         z-index: 999;
+        white-space: nowrap;
+      }
+
+      /* Panel de calibración de escala (útil para ajustar en móvil) */
+      #calibrador {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 999;
+        background: rgba(0, 0, 0, 0.60);
+        padding: 10px 14px;
+        border-radius: 12px;
+        color: #fff;
+        font-family: sans-serif;
+        font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 180px;
+      }
+
+      #calibrador label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      #calibrador input[type="range"] {
+        width: 100%;
+        accent-color: #00d4ff;
+        cursor: pointer;
+      }
+
+      /* Botón para ocultar el calibrador una vez ajustado */
+      #btn-ocultar {
+        margin-top: 4px;
+        background: rgba(255,255,255,0.15);
+        border: none;
+        color: #fff;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        text-align: center;
+      }
+      #btn-ocultar:hover {
+        background: rgba(255,255,255,0.28);
       }
     </style>
   </head>
 
   <body>
+
+    <!-- ============================================================
+         PANEL DE CALIBRACIÓN
+         Mueve el slider hasta que el modelo se vea bien en tu celular.
+         Cuando encuentres el valor correcto, cópialo en el atributo
+         "scale" de la entidad <a-entity gltf-model> y borra este panel.
+         ============================================================ -->
+    <div id="calibrador">
+      <label>
+        <span>Scale:</span>
+        <strong id="val-scale">0.10</strong>
+      </label>
+      <input
+        type="range"
+        id="slider-scale"
+        min="0.01"
+        max="1.00"
+        step="0.01"
+        value="0.10"
+        oninput="ajustarScale(this.value)"
+      />
+      <button id="btn-ocultar" onclick="document.getElementById('calibrador').style.display='none'">
+        ✕ Ocultar panel
+      </button>
+    </div>
 
     <!-- Etiqueta de instrucción visible sobre la cámara -->
     <div id="ayuda">📷 Apunta al marcador Hiro para ver el modelo 3D</div>
@@ -89,34 +161,43 @@
           Todo lo que se coloque DENTRO de esta etiqueta aparecerá
           anclado sobre el marcador cuando la cámara lo detecte.
 
-          preset="hiro" → usa el patrón Hiro integrado en AR.js.
+          preset="hiro"  → usa el patrón Hiro integrado en AR.js.
+          size="0.08"    → declara que el marcador físico mide 8 cm.
+                           ¡IMPORTANTE! Si tu marcador está impreso a
+                           otro tamaño, ajusta este valor en metros.
+                           Ej: 10 cm = 0.10 | 15 cm = 0.15
+
           Puedes imprimir el marcador desde:
           https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png
         ============================================================
       -->
-      <a-marker preset="hiro">
+      <a-marker preset="hiro" size="0.08">
 
         <!--
           ==========================================================
             ENTIDAD DEL MODELO 3D
             Atributos:
               gltf-model    → referencia al asset cargado en <a-assets>
-              position      → posición relativa al centro del marcador
-                              (x=0, y=0, z=0 = sobre el marcador)
-              scale         → escala del modelo (ajústala según tu modelo)
+              position      → posición relativa al centro del marcador.
+                              y="0.05" eleva ligeramente el modelo para
+                              que no quede enterrado en el marcador.
+              scale         → escala del modelo. Empieza en 0.1 y
+                              ajusta con el slider del panel superior.
+                              En móvil generalmente se necesita un valor
+                              mucho menor que en escritorio.
               animation     → componente de animación integrado en A-Frame
-                · property: rotation  → anima la propiedad de rotación
-                · from / to           → de 0° a 360° en el eje Y
-                · dur                 → duración en ms (3000 = 3 segundos
-                                        por vuelta completa)
-                · easing: linear      → velocidad constante (sin aceleración)
-                · loop: true          → repite la animación indefinidamente
+                · property: rotation  anima la propiedad de rotación
+                · from / to           de 0° a 360° en el eje Y
+                · dur                 duración en ms (3000 = 3 seg por vuelta)
+                · easing: linear      velocidad constante, sin aceleración
+                · loop: true          repite la animación indefinidamente
           ==========================================================
         -->
         <a-entity
+          id="mi-modelo"
           gltf-model="#modelo-3d"
-          position="0 0 0"
-          scale="0.5 0.5 0.5"
+          position="0 0.05 0"
+          scale="0.1 0.1 0.1"
           animation="
             property: rotation;
             from:     0 0   0;
@@ -133,13 +214,38 @@
         ============================================================
           CÁMARA DE A-FRAME
           AR.js necesita que exista una cámara explícita en la escena.
-          El atributo camera-info-logger (de AR.js) se encarga de
-          sincronizar la posición de esta cámara con la cámara real.
+          El sistema AR.js sincroniza automáticamente esta cámara
+          virtual con la cámara física del dispositivo.
         ============================================================
       -->
       <a-entity camera></a-entity>
 
     </a-scene>
+
+    <!--
+      ============================================================
+        SCRIPT DE CALIBRACIÓN
+        Función que actualiza el scale del modelo en tiempo real
+        cuando el usuario mueve el slider del panel superior.
+        Una vez que encuentres el valor correcto:
+          1. Copia el número que aparece en "Scale:"
+          2. Pégalo en el atributo scale de <a-entity id="mi-modelo">
+          3. Borra este bloque <script> y el div#calibrador
+      ============================================================
+    -->
+    <script>
+      function ajustarScale(valor) {
+        // Muestra el valor actual con 2 decimales en el panel
+        const valorFormateado = parseFloat(valor).toFixed(2);
+        document.getElementById("val-scale").textContent = valorFormateado;
+
+        // Aplica el nuevo scale al modelo 3D en la escena AR
+        const modelo = document.getElementById("mi-modelo");
+        if (modelo) {
+          modelo.setAttribute("scale", valor + " " + valor + " " + valor);
+        }
+      }
+    <\/script>
 
   </body>
 </html>
