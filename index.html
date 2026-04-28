@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR con A-Frame y AR.js</title>
+
+    <!--
+      ========================================================
+        DEPENDENCIAS EXTERNAS
+        - A-Frame: motor de escenas 3D/VR/AR basado en WebGL
+        - AR.js: extensión de A-Frame para realidad aumentada
+                 usando marcadores (como el marcador Hiro)
+      ========================================================
+    -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+    <style>
+      /* Elimina márgenes y evita barras de desplazamiento */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        overflow: hidden; /* La cámara AR ocupa toda la pantalla */
+      }
+
+      /* Etiqueta de ayuda en la esquina inferior */
+      #ayuda {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        font-family: sans-serif;
+        font-size: 13px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        pointer-events: none;         /* No bloquea el toque en móvil */
+        z-index: 999;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- Etiqueta de instrucción visible sobre la cámara -->
+    <div id="ayuda">📷 Apunta al marcador Hiro para ver el modelo 3D</div>
+
+    <!--
+      ============================================================
+        ESCENA PRINCIPAL DE A-FRAME
+        Atributos de la escena:
+          - embedded:         permite que la escena viva dentro
+                              del documento HTML (no en pantalla completa)
+          - arjs:             activa el sistema AR.js
+            · sourceType=webcam      usa la cámara del dispositivo
+            · debugUIEnabled=false   oculta el panel de depuración
+            · detectionMode=mono_and_matrix  detecta marcadores Hiro
+      ============================================================
+    -->
+    <a-scene
+      embedded
+      arjs="sourceType: webcam;
+            debugUIEnabled: false;
+            detectionMode: mono_and_matrix;"
+    >
+
+      <!--
+        ============================================================
+          ASSETS (recursos precargados)
+          A-Frame carga el modelo GLB antes de que la escena inicie.
+          El atributo "id" permite referenciar el asset desde cualquier
+          entidad de la escena con el selector "#modelo-3d".
+        ============================================================
+      -->
+      <a-assets>
+        <a-asset-item id="modelo-3d" src="modelo.glb"></a-asset-item>
+      </a-assets>
+
+      <!--
+        ============================================================
+          MARCADOR HIRO
+          <a-marker> detecta el patrón impreso del marcador Hiro.
+          Todo lo que se coloque DENTRO de esta etiqueta aparecerá
+          anclado sobre el marcador cuando la cámara lo detecte.
+
+          preset="hiro" → usa el patrón Hiro integrado en AR.js.
+          Puedes imprimir el marcador desde:
+          https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png
+        ============================================================
+      -->
+      <a-marker preset="hiro">
+
+        <!--
+          ==========================================================
+            ENTIDAD DEL MODELO 3D
+            Atributos:
+              gltf-model    → referencia al asset cargado en <a-assets>
+              position      → posición relativa al centro del marcador
+                              (x=0, y=0, z=0 = sobre el marcador)
+              scale         → escala del modelo (ajústala según tu modelo)
+              animation     → componente de animación integrado en A-Frame
+                · property: rotation  → anima la propiedad de rotación
+                · from / to           → de 0° a 360° en el eje Y
+                · dur                 → duración en ms (3000 = 3 segundos
+                                        por vuelta completa)
+                · easing: linear      → velocidad constante (sin aceleración)
+                · loop: true          → repite la animación indefinidamente
+          ==========================================================
+        -->
+        <a-entity
+          gltf-model="#modelo-3d"
+          position="0 0 0"
+          scale="0.5 0.5 0.5"
+          animation="
+            property: rotation;
+            from:     0 0   0;
+            to:       0 360 0;
+            dur:      3000;
+            easing:   linear;
+            loop:     true;
+          "
+        ></a-entity>
+
+      </a-marker>
+
+      <!--
+        ============================================================
+          CÁMARA DE A-FRAME
+          AR.js necesita que exista una cámara explícita en la escena.
+          El atributo camera-info-logger (de AR.js) se encarga de
+          sincronizar la posición de esta cámara con la cámara real.
+        ============================================================
+      -->
+      <a-entity camera></a-entity>
+
+    </a-scene>
+
+  </body>
+</html>
